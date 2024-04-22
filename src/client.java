@@ -24,7 +24,7 @@ public class client {
 
     private static int events=0;
     private static boolean cs_flag=false;
-    private static Semaphore semaphore = new Semaphore(2);
+    private static Semaphore semaphore = new Semaphore(0);
 
     public static void main(String[] args) throws IOException {
         Socket socket = new Socket();
@@ -108,7 +108,6 @@ public class client {
         common_msg("REQ_"+t+"_"+localip+"_"+portno);
             try {
                 semaphore.acquire(2);
-                semaphore.acquire(2);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -120,8 +119,9 @@ public class client {
             throw new RuntimeException(e);
         }
         System.out.println("exiting CS");
-            semaphore.release();
-        semaphore.release();
+//            semaphore.release();
+//        semaphore.release();
+        semaphore = new Semaphore(0);
          synchronized (priorityQueue){
              priorityQueue.poll();
          }
@@ -234,6 +234,9 @@ public class client {
                 client=new Socket(add,port);
 
             DataOutputStream dout = new DataOutputStream(client.getOutputStream());
+            Random random = new Random();
+            int randomNumber = random.nextInt(10);
+            Thread.sleep(1000*randomNumber);
             try{
              dout.writeUTF(message);
              dout.flush();
@@ -246,6 +249,8 @@ public class client {
                 dout.flush();
             }
         } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
         synchronized (lock) {
@@ -311,22 +316,14 @@ public class client {
                 String address;
 
                 String m=dis.readUTF();
-                System.out.println(m+" first msg");
+//                System.out.println(m+" first msg");
                 int clientport;
-                //     message pattern recieved is of  type_time-ip&port
+                //     message pattern recieved is of  type_time_ip_port
                 while (true) {
                     try {
                         String message = dis.readUTF();
                         String[] mess=message.split("_");
-                        System.out.println(message);
                         String type;
-//                        int index1 = message.indexOf("_");
-//                        type = message.substring(0, index1);
-//                        int index2 = message.indexOf("-");
-//                        int index3 = message.indexOf("&");
-//                        address = message.substring(index2 + 1, index3);
-//                        clientName = address + message.substring(index3 + 1);
-//                        clientport = Integer.parseInt(message.substring(index3 + 1));
                         type=mess[0];
                         address=mess[2];
                         clientport=Integer.parseInt(mess[3]);
