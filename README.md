@@ -17,6 +17,9 @@ As you can see from the figure Requests are sent at timestamp=1 and responses fr
 We can also check the request which is top of the priority queue by entering 4  
 ![example_image](images/queue_checking.jpeg)  
 
+  Critical section output looks like  
+
+  ![example_image](images/cs.jpeg)
 
 ### Basic Syntax to start the client code is
 
@@ -38,7 +41,7 @@ run this for client 3
 javac client.java
 java client 6002 10.10.12.181 6000 10.10.12.181 6001 10.10.12.181 8080
 ```
-Replace the IP address with the appropriate ones while running the code  
+Replace the IP address with the appropriate ones while running the code or we can just use localhost as the ip address if we are running all of them in a single system.  
 
 user can Directly run the cmd
 ```bash
