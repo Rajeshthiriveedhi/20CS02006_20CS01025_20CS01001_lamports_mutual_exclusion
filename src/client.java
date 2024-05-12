@@ -8,9 +8,21 @@ import java.util.concurrent.Semaphore;
 
 
 public class client {
-    private static PriorityQueue<Map.Entry<Integer,String>> priorityQueue=new PriorityQueue<>(
-            (e1, e2) -> Integer.compare(e1.getKey(), e2.getKey())
-    );;
+    private static PriorityQueue<Map.Entry<Integer, String>> priorityQueue = new PriorityQueue<>(
+            (e1, e2) -> {
+                // Compare keys of the Map.Entry objects
+                if (e1.getKey() > e2.getKey()) {
+                    return 1; // e1 has higher priority
+                } else if (e1.getKey() < e2.getKey()) {
+                    return -1; // e2 has higher priority
+                } else {
+                    // Keys are equal, compare values by converting to hash
+                    int hash1 = generateHash(e1.getValue());
+                    int hash2 = generateHash(e2.getValue());
+                    return Integer.compare(hash1, hash2);
+                }
+            }
+    );
     public static String localip;
     public static ArrayList<String> history=new ArrayList<>();
     public static int portno, port1, port2,port_cs;
@@ -25,6 +37,14 @@ public class client {
     private static int events=0;
     private static boolean cs_flag=false;
     private static Semaphore semaphore = new Semaphore(0);
+
+    public static int generateHash(String input) {
+        int hash = 0;
+        for (int i = 0; i < input.length(); i++) {
+            hash += input.charAt(i) * (i + 1); // Multiply by position (1-indexed)
+        }
+        return hash;
+    }
 
     public static void main(String[] args) throws IOException {
         Socket socket = new Socket();
@@ -42,7 +62,7 @@ public class client {
             add_cs=args[5];
             port_cs=Integer.parseInt(args[6]);
         }
-      else {
+        else {
             System.out.println("Enter Portno of your listener:");
             portno = scanner.nextInt();
             scanner.nextLine();
@@ -62,8 +82,8 @@ public class client {
             port_cs = scanner.nextInt();
 
         }
-      if(add1.equals("localhost") || add1.equals("127.0.0.1"))
-          add1=localip;
+        if(add1.equals("localhost") || add1.equals("127.0.0.1"))
+            add1=localip;
         if(add2.equals("localhost") || add2.equals("127.0.0.1"))
             add2=localip;
         if(add_cs.equals("localhost") || add_cs.equals("127.0.0.1"))
@@ -102,15 +122,15 @@ public class client {
             resno=0;
         }
         synchronized (priorityQueue) {
-            priorityQueue.add(Map.entry(t, "self"));
+            priorityQueue.add(Map.entry(t, localip+portno));
         }
 
         common_msg("REQ_"+t+"_"+localip+"_"+portno);
-            try {
-                semaphore.acquire(2);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+        try {
+            semaphore.acquire(2);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
         System.out.println("Entering critical Section");
         try {
@@ -122,16 +142,16 @@ public class client {
 //            semaphore.release();
 //        semaphore.release();
         semaphore = new Semaphore(0);
-         synchronized (priorityQueue){
-             priorityQueue.poll();
-         }
+        synchronized (priorityQueue){
+            priorityQueue.poll();
+        }
         synchronized (lock){
             timeStamp++;
             events++;
             t=timeStamp;
             history.add(String.valueOf(events)+" -> "+String.valueOf(timeStamp)+" ->sending REL");
         }
-      common_msg("REL_"+t+"_"+localip+"_"+portno);
+        common_msg("REL_"+t+"_"+localip+"_"+portno);
     }
     public static void commun() throws IOException {
         while (true) {
@@ -158,10 +178,10 @@ public class client {
             }
             else if(task==4){
                 synchronized (priorityQueue){
-                   if( priorityQueue.peek() != null)
-                    System.out.println("top element in priorityQueue is:"+ priorityQueue.peek().getValue());
-                   else
-                       System.out.println("Queue is empty");
+                    if( priorityQueue.peek() != null)
+                        System.out.println("top element in priorityQueue is:"+ priorityQueue.peek().getValue());
+                    else
+                        System.out.println("Queue is empty");
                 }
             }
             else{
@@ -170,11 +190,11 @@ public class client {
         }
         System.out.println("Exiting cli interface");
         if(serverSocket!=null)
-         serverSocket.close();
-       if(client1!=null)
-        client1.close();
-       if(client2!=null)
-        client2.close();
+            serverSocket.close();
+        if(client1!=null)
+            client1.close();
+        if(client2!=null)
+            client2.close();
     }
 
 
@@ -188,8 +208,8 @@ public class client {
             client2 = waitForServer(add2, port2);
         }
 
-             DataOutputStream dout1 = new DataOutputStream(client1.getOutputStream());
-             DataOutputStream dout2 = new DataOutputStream(client2.getOutputStream());
+        DataOutputStream dout1 = new DataOutputStream(client1.getOutputStream());
+        DataOutputStream dout2 = new DataOutputStream(client2.getOutputStream());
         try {
             dout1.writeUTF(message);
             dout1.flush();
@@ -218,10 +238,10 @@ public class client {
             Socket client=null;
             if(add.equals(add1)&& port==port1) {
                 client = client1;
-               if(client==null){
-                   client=waitForServer(add,port);
-                   client1=client;
-               }
+                if(client==null){
+                    client=waitForServer(add,port);
+                    client1=client;
+                }
             }
             else if(add.equals(add2) && port==port2) {
                 client = client2;
@@ -238,8 +258,8 @@ public class client {
             int randomNumber = random.nextInt(10);
             Thread.sleep(1000*randomNumber);
             try{
-             dout.writeUTF(message);
-             dout.flush();
+                dout.writeUTF(message);
+                dout.flush();
             }
             catch(IOException e){
                 System.out.println(add+port+"server disconnected");
@@ -283,11 +303,11 @@ public class client {
             DataOutputStream out=new DataOutputStream(socket.getOutputStream());
             out.writeUTF(add+"_"+String.valueOf(portno));
         }
-            return socket;
+        return socket;
 
     }
     public static void server() throws IOException {
-         serverSocket = new ServerSocket(portno);
+        serverSocket = new ServerSocket(portno);
         while (true) {
             Socket clientSocket=null;
             try {
@@ -307,93 +327,93 @@ public class client {
                 }
             }).start();
         }
-         serverSocket.close();
+        serverSocket.close();
     }
 
     private static void handleClient(Socket clientSocket) throws IOException {
-           DataInputStream dis = new DataInputStream(clientSocket.getInputStream());
-                String clientName;
-                String address;
+        DataInputStream dis = new DataInputStream(clientSocket.getInputStream());
+        String clientName;
+        String address;
 
-                String m=dis.readUTF();
+        String m=dis.readUTF();
 //                System.out.println(m+" first msg");
-                int clientport;
-                //     message pattern recieved is of  type_time_ip_port
-                while (true) {
-                    try {
-                        String message = dis.readUTF();
-                        String[] mess=message.split("_");
-                        String type;
-                        type=mess[0];
-                        address=mess[2];
-                        clientport=Integer.parseInt(mess[3]);
-                        clientName=address+clientport;
-                        int t, h;
-                        int client_clock;
-                        try {
-                            client_clock = Integer.parseInt(mess[1]);
-                        } catch (NumberFormatException n) {
-                            System.out.println("error in the message:" + message + " " + clientport);
-                            return;
+        int clientport;
+        //     message pattern recieved is of  type_time_ip_port
+        while (true) {
+            try {
+                String message = dis.readUTF();
+                String[] mess=message.split("_");
+                String type;
+                type=mess[0];
+                address=mess[2];
+                clientport=Integer.parseInt(mess[3]);
+                clientName=address+clientport;
+                int t, h;
+                int client_clock;
+                try {
+                    client_clock = Integer.parseInt(mess[1]);
+                } catch (NumberFormatException n) {
+                    System.out.println("error in the message:" + message + " " + clientport);
+                    return;
+                }
+
+                synchronized (lock) {
+                    events++;
+                    h = timeStamp;
+                    timeStamp = Math.max(timeStamp, client_clock) + 1;
+                    t = timeStamp;
+                    history.add(String.valueOf(events) + " -> " + String.valueOf(t) + " -> " + type + "  " + client_clock);
+
+                }
+                if (type.endsWith("REQ")) {
+                    synchronized (priorityQueue) {
+                        priorityQueue.add(Map.entry(client_clock, clientName));
+                    }
+                    write(address, clientport, "RES_" + (t + 1) + "_" + localip + "_" + portno);
+                } else if (type.endsWith("RES")) {
+
+                    synchronized (res_lock) {
+                        resno++;
+                        System.out.println("res section");
+                        if (resno == 2) {
+                            semaphore.release();
+                            resno = 0;
+                            if (priorityQueue.peek().getValue().equals(localip+portno))
+                                semaphore.release();
                         }
 
-                        synchronized (lock) {
-                            events++;
-                            h = timeStamp;
-                            timeStamp = Math.max(timeStamp, client_clock) + 1;
-                            t = timeStamp;
-                            history.add(String.valueOf(events) + " -> " + String.valueOf(t) + " -> " + type + "  " + client_clock);
+                    }
 
+                } else if (type.endsWith("REL")) {
+                    synchronized (priorityQueue) {
+                        if (!Objects.requireNonNull(priorityQueue.poll()).getValue().equals(clientName)) {
+                            System.out.println("Error in the queue");
                         }
-                        if (type.endsWith("REQ")) {
-                            synchronized (priorityQueue) {
-                                priorityQueue.add(Map.entry(client_clock, clientName));
-                            }
-                            write(address, clientport, "RES_" + (t + 1) + "_" + localip + "_" + portno);
-                        } else if (type.endsWith("RES")) {
-
-                            synchronized (res_lock) {
-                                resno++;
-                                System.out.println("res section");
-                                if (resno == 2) {
-                                    semaphore.release();
-                                    resno = 0;
-                                    if (priorityQueue.peek().getValue().equals("self"))
-                                        semaphore.release();
-                                }
-
-                            }
-
-                        } else if (type.endsWith("REL")) {
-                            synchronized (priorityQueue) {
-                                if (!Objects.requireNonNull(priorityQueue.poll()).getValue().equals(clientName)) {
-                                    System.out.println("Error in the queue");
-                                }
-                                if (cs_flag) {
-                                    assert priorityQueue.peek() != null;
-                                    if (priorityQueue.peek().getValue().equals("self")) {
-                                        semaphore.release();
-                                    }
-                                }
+                        if (cs_flag) {
+                            assert priorityQueue.peek() != null;
+                            if (priorityQueue.peek().getValue().equals(localip+portno)) {
+                                semaphore.release();
                             }
                         }
-
-
-                        System.out.println("Message received: " + message + " from " + clientport);
-
-                    } catch (IOException i) {
-                        System.out.println("client disconnected ");
-                        String[] client_add = m.split("_");
-                        if(client_add.length>=2){
-                           if(client_add[0].equals(add1) && client_add[1].equals(String.valueOf(port1)))
-                               client1=null;
-                            if(client_add[0].equals(add2) && client_add[1].equals(String.valueOf(port2)))
-                                client2=null;
-                        }
-                        clientSocket.close();
-                        return ;
                     }
                 }
+
+
+                System.out.println("Message received: " + message + " from " + clientport);
+
+            } catch (IOException i) {
+                System.out.println("client disconnected ");
+                String[] client_add = m.split("_");
+                if(client_add.length>=2){
+                    if(client_add[0].equals(add1) && client_add[1].equals(String.valueOf(port1)))
+                        client1=null;
+                    if(client_add[0].equals(add2) && client_add[1].equals(String.valueOf(port2)))
+                        client2=null;
+                }
+                clientSocket.close();
+                return ;
             }
+        }
+    }
 
 }
